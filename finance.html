@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finance Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #111827;
+      --card-border: #1f2937;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --blue: #3b82f6;
+      --orange: #f97316;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .month-wrap label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    select {
+      height: 38px;
+      min-width: 170px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: var(--text);
+      padding: 0 10px;
+      outline: none;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .kpi-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-sub {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .bad { color: var(--red); }
+    .warn { color: var(--amber); }
+    .good { color: var(--green); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid #334155;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge.good {
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.45);
+      background: rgba(16, 185, 129, 0.12);
+    }
+    .badge.warn {
+      color: #fcd34d;
+      border-color: rgba(245, 158, 11, 0.45);
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .badge.bad {
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.45);
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .span-2 {
+      grid-column: span 2;
+    }
+
+    .panel-title {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    .panel-sub {
+      margin: -6px 0 10px;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .chart-wrap {
+      height: 340px;
+    }
+
+    @media (max-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+      .span-2 {
+        grid-column: span 1;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 16px;
+      }
+      .header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Finance Dashboard</h1>
+        <div class="subtitle">现金流与生存状况监控（Pre-revenue）</div>
+      </div>
+      <div class="month-wrap">
+        <label for="monthSelect">Month</label>
+        <select id="monthSelect"></select>
+      </div>
+    </div>
+
+    <section class="kpi-grid">
+      <article class="card">
+        <div class="kpi-head"><span>Total Cash on Hand</span><span>💼</span></div>
+        <div id="kpiCash" class="kpi-value">$0</div>
+      </article>
+      <article class="card">
+        <div class="kpi-head"><span>Monthly Burn Rate</span><span>🔥</span></div>
+        <div id="kpiBurn" class="kpi-value">$0</div>
+      </article>
+      <article class="card">
+        <div class="kpi-head"><span>MoM Burn Change</span><span>📈</span></div>
+        <div id="kpiMoM" class="kpi-value">$0</div>
+        <div id="kpiMoMSub" class="kpi-sub">vs 上月</div>
+      </article>
+      <article class="card">
+        <div class="kpi-head">
+          <span>Cash Runway</span>
+          <span id="runwayBadge" class="badge">-</span>
+        </div>
+        <div id="kpiRunway" class="kpi-value">0.0 months</div>
+      </article>
+    </section>
+
+    <section class="charts-grid">
+      <article class="card span-2">
+        <h2 class="panel-title">Cash Balance vs Burn Rate</h2>
+        <div class="chart-wrap"><canvas id="comboChart"></canvas></div>
+      </article>
+      <article class="card">
+        <h2 class="panel-title">Expense Mix</h2>
+        <div id="expenseMonth" class="panel-sub">-</div>
+        <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    const financeData = [
+      { month: "2023-08", cashBalance: 1000000, burnRate: 80000, payroll: 60000, software: 10000, legal: 5000, other: 5000 },
+      { month: "2023-09", cashBalance: 920000, burnRate: 85000, payroll: 65000, software: 10000, legal: 2000, other: 8000 },
+      { month: "2023-10", cashBalance: 835000, burnRate: 90000, payroll: 70000, software: 12000, legal: 1000, other: 7000 }
+    ];
+
+    const monthSelect = document.getElementById("monthSelect");
+    const kpiCash = document.getElementById("kpiCash");
+    const kpiBurn = document.getElementById("kpiBurn");
+    const kpiMoM = document.getElementById("kpiMoM");
+    const kpiMoMSub = document.getElementById("kpiMoMSub");
+    const kpiRunway = document.getElementById("kpiRunway");
+    const runwayBadge = document.getElementById("runwayBadge");
+    const expenseMonth = document.getElementById("expenseMonth");
+
+    const money = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0
+    });
+
+    let comboChart;
+    let pieChart;
+
+    function formatUSD(n) {
+      return money.format(n || 0);
+    }
+
+    function getRunwayStatus(runway) {
+      if (runway < 6) return { text: "Critical", cls: "bad" };
+      if (runway < 12) return { text: "Warning", cls: "warn" };
+      return { text: "Healthy", cls: "good" };
+    }
+
+    function buildMonthOptions() {
+      monthSelect.innerHTML = "";
+      financeData.forEach((d, index) => {
+        const op = document.createElement("option");
+        op.value = d.month;
+        op.textContent = d.month;
+        if (index === financeData.length - 1) op.selected = true;
+        monthSelect.appendChild(op);
+      });
+    }
+
+    function renderKpis(selectedIndex) {
+      const current = financeData[selectedIndex];
+      const prev = selectedIndex > 0 ? financeData[selectedIndex - 1] : null;
+      const runway = current.burnRate > 0 ? current.cashBalance / current.burnRate : 0;
+      const status = getRunwayStatus(runway);
+
+      kpiCash.textContent = formatUSD(current.cashBalance);
+      kpiBurn.textContent = formatUSD(current.burnRate);
+      kpiRunway.textContent = runway.toFixed(1) + " months";
+      kpiRunway.className = "kpi-value " + status.cls;
+      runwayBadge.textContent = status.text;
+      runwayBadge.className = "badge " + status.cls;
+
+      if (!prev) {
+        kpiMoM.textContent = "N/A";
+        kpiMoM.className = "kpi-value";
+        kpiMoMSub.textContent = "首月无环比";
+        return;
+      }
+
+      const delta = current.burnRate - prev.burnRate;
+      const pct = prev.burnRate > 0 ? (delta / prev.burnRate) * 100 : 0;
+      const sign = delta > 0 ? "+" : "";
+      kpiMoM.textContent = sign + formatUSD(delta) + " (" + sign + pct.toFixed(1) + "%)";
+      kpiMoM.className = "kpi-value " + (delta > 0 ? "bad" : delta < 0 ? "good" : "");
+      kpiMoMSub.textContent = "vs " + prev.month;
+    }
+
+    function renderComboChart() {
+      const labels = financeData.map((d) => d.month);
+      const burns = financeData.map((d) => d.burnRate);
+      const balances = financeData.map((d) => d.cashBalance);
+
+      if (comboChart) comboChart.destroy();
+      comboChart = new Chart(document.getElementById("comboChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              type: "bar",
+              label: "Burn Rate",
+              data: burns,
+              backgroundColor: "rgba(249, 115, 22, 0.8)",
+              borderRadius: 6,
+              yAxisID: "y"
+            },
+            {
+              type: "line",
+              label: "Cash Balance",
+              data: balances,
+              borderColor: "#3b82f6",
+              backgroundColor: "#3b82f6",
+              borderWidth: 3,
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 5,
+              yAxisID: "y"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: "#cbd5e1" }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const i = context.dataIndex;
+                  const row = financeData[i];
+                  if (context.dataset.label === "Cash Balance") {
+                    const runway = row.burnRate > 0 ? row.cashBalance / row.burnRate : 0;
+                    return "Cash Balance: " + formatUSD(row.cashBalance) + "（可支撑约 " + runway.toFixed(1) + " 个月）";
+                  }
+                  if (context.dataset.label === "Burn Rate") {
+                    return "Burn Rate: " + formatUSD(row.burnRate) + " / 月";
+                  }
+                  return context.dataset.label + ": " + formatUSD(context.raw);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#94a3b8" },
+              grid: { color: "rgba(31, 41, 55, 0.35)" }
+            },
+            y: {
+              ticks: {
+                color: "#94a3b8",
+                callback: (v) => "$" + Math.round(v / 1000) + "k"
+              },
+              grid: { color: "rgba(31, 41, 55, 0.65)" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderPieChart(selectedIndex) {
+      const current = financeData[selectedIndex];
+      const pieLabels = ["Payroll", "Software", "Legal", "Other"];
+      const pieValues = [current.payroll, current.software, current.legal, current.other];
+      const total = pieValues.reduce((a, b) => a + b, 0);
+
+      expenseMonth.textContent = current.month;
+
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(document.getElementById("pieChart"), {
+        type: "doughnut",
+        data: {
+          labels: pieLabels,
+          datasets: [
+            {
+              data: pieValues,
+              backgroundColor: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"],
+              borderColor: "#111827",
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "62%",
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                color: "#cbd5e1",
+                usePointStyle: true,
+                pointStyle: "circle"
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const val = Number(context.raw || 0);
+                  const pct = total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
+                  return context.label + ": " + formatUSD(val) + "（占比 " + pct + "%）";
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderByMonth(month) {
+      const index = financeData.findIndex((d) => d.month === month);
+      const selectedIndex = index >= 0 ? index : financeData.length - 1;
+      renderKpis(selectedIndex);
+      renderPieChart(selectedIndex);
+    }
+
+    function init() {
+      buildMonthOptions();
+      renderComboChart();
+      renderByMonth(monthSelect.value);
+      monthSelect.addEventListener("change", (e) => renderByMonth(e.target.value));
+    }
+
+    init();
+  </script>
+</body>
+</html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hologrow Finance Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --good: #059669;
+      --warn: #d97706;
+      --bad: #dc2626;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans SC", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .container {
+      max-width: 1280px;
+      margin: 24px auto;
+      padding: 0 16px 24px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+    .kpi { grid-column: span 3; }
+    .panel-6 { grid-column: span 6; }
+    .panel-8 { grid-column: span 8; }
+    .panel-4 { grid-column: span 4; }
+    .panel-12 { grid-column: span 12; }
+    .kpi-title {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .kpi-sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: end;
+    }
+    .controls label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .controls input, .controls select {
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: #fff;
+    }
+    .controls button {
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 12px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .controls button:hover { border-color: #cbd5e1; }
+    .panel-title {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .table-wrap { overflow: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    .footer-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    @media (max-width: 980px) {
+      .kpi, .panel-6, .panel-8, .panel-4 { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hologrow 月度财务 Dashboard</h1>
+    <div class="subtitle">聚焦美国 SaaS 初创核心指标：Cash Balance / Burn Rate / Runway / Cash Flow。</div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="controls">
+        <div>
+          <label>月度收支 CSV</label>
+          <input id="incomeFile" type="file" accept=".csv" />
+        </div>
+        <div>
+          <label>月度现金流 CSV</label>
+          <input id="cashflowFile" type="file" accept=".csv" />
+        </div>
+        <div>
+          <label>月末资金 CSV</label>
+          <input id="balanceFile" type="file" accept=".csv" />
+        </div>
+        <div>
+          <label>选择月份</label>
+          <select id="monthSelect"></select>
+        </div>
+        <div>
+          <button id="reloadBtn">用上传文件刷新</button>
+        </div>
+      </div>
+      <div class="footer-note">默认已内置你当前上传的三份 CSV。后续可直接替换上传后刷新，不需要改代码。</div>
+    </div>
+
+    <div class="row">
+      <div class="card kpi">
+        <div class="kpi-title">月末可用现金</div>
+        <div id="kpiCash" class="kpi-value">$0</div>
+        <div id="kpiCashSub" class="kpi-sub">-</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-title">当月 Burn Rate（经营性）</div>
+        <div id="kpiBurn" class="kpi-value">$0</div>
+        <div id="kpiBurnSub" class="kpi-sub">-</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-title">Runway（月）</div>
+        <div id="kpiRunway" class="kpi-value">-</div>
+        <div id="kpiRunwaySub" class="kpi-sub">基于近 3 月平均 burn</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-title">当月净现金变化</div>
+        <div id="kpiNetCash" class="kpi-value">$0</div>
+        <div id="kpiNetCashSub" class="kpi-sub">经营+投资+融资</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card panel-8">
+        <h3 class="panel-title">月末现金余额趋势</h3>
+        <canvas id="cashTrendChart" height="130"></canvas>
+      </div>
+      <div class="card panel-4">
+        <h3 class="panel-title">选中月份：账户结构</h3>
+        <canvas id="accountMixChart" height="130"></canvas>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card panel-6">
+        <h3 class="panel-title">经营性 Burn vs 收入</h3>
+        <canvas id="burnRevenueChart" height="120"></canvas>
+      </div>
+      <div class="card panel-6">
+        <h3 class="panel-title">现金流拆分（经营/投资/融资）</h3>
+        <canvas id="cashflowTypeChart" height="120"></canvas>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card panel-12">
+        <h3 class="panel-title">月度指标明细</h3>
+        <div class="table-wrap">
+          <table id="monthlyTable">
+            <thead>
+              <tr>
+                <th>月份</th>
+                <th>月末现金</th>
+                <th>收入</th>
+                <th>支出</th>
+                <th>经营净现金流</th>
+                <th>Burn Rate</th>
+                <th>净现金变化</th>
+                <th>Runway(月)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const builtinIncomeCsv = `月份,专业会计科目（需要详细了解后再重新分类）,管理大类,款项类目,支出,收入,支出细项占比,支出大类占比
+2025/07/31,G&A,专业服务,法律服务费,6510,,100.00%,60.73%
+2025/07/31,"一部分G&A(e.g.,lark) / R&D(AWS&开发工具）",软件与订阅服务,软件与订阅,1903.19,,100.00%,17.76%
+2025/07/31,G&A,行政运营,银行手续费,22.7,,100.00%,0.21%
+2025/07/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 住宿,2283,,100.00%,21.30%
+2025/07/31,Other Income / Expense,其他收入/抵减,银行利息收入,,1.22,,0.00%
+2025/08/31,表面R&D / 实际G&A,研发外包费 - 中国团队,中国团队运营总额,60000,,100.00%,46.56%
+2025/08/31,G&A,专业服务,财税审计费,1400,,2.48%,43.76%
+2025/08/31,G&A,专业服务,法律服务费,10000,,17.73%,43.76%
+2025/08/31,G&A / S&M (若市场咨询),专业服务,顾问与咨询费,45000,,79.79%,43.76%
+2025/08/31,G&A,行政运营,办公行政与耗材 (Office Supplies 具体是什么）为什么reports里没看到美国房租？,728.44,,81.91%,0.69%
+2025/08/31,"一部分G&A(e.g.,lark) / R&D(AWS&开发工具）",软件与订阅服务,软件与订阅,2538.71,,100.00%,1.97%
+2025/08/31,G&A,行政运营,银行手续费,160.87,,18.09%,0.69%
+2025/08/31,S&M (若对客) / G&A (若内部),差旅招待,业务招待费,2798.61,,30.92%,7.02%
+2025/08/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 机票,3000,,33.14%,7.02%
+2025/08/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 住宿,2730.74,,30.17%,7.02%
+2025/08/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 杂项,521.91,,5.77%,7.02%
+2025/08/31,Other Income / Expense,其他收入/抵减,银行利息收入,,3.92,,0.00%
+2025/09/30,表面R&D / 实际G&A,研发外包费 - 中国团队,中国团队运营总额,40000,,100.00%,83.70%
+2025/09/30,G&A / S&M (若市场咨询),专业服务,顾问与咨询费,930,,100.00%,1.95%
+2025/09/30,G&A,行政运营,办公行政与耗材,2864.3,,98.62%,6.08%
+2025/09/30,"一部分G&A(e.g.,lark) / R&D(AWS&开发工具）",软件与订阅服务,软件与订阅,1789.81,,100.00%,3.75%
+2025/09/30,G&A,行政运营,银行手续费,40.02,,1.38%,6.08%
+2025/09/30,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 机票,1000,,46.17%,4.53%
+2025/09/30,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 住宿,1166.07,,53.83%,4.53%
+2025/09/30,Other Income / Expense,其他收入/抵减,银行利息收入,,4.32,,0.00%
+2025/10/31,S&M,市场与营销,市场活动与展会费,1367,,100.00%,0.84%
+2025/10/31,表面R&D / 实际G&A,研发外包费 - 中国团队,中国团队运营总额,150000,,100.00%,92.40%
+2025/10/31,G&A,行政运营,通讯费,55.7,,3.07%,1.12%
+2025/10/31,G&A,行政运营,办公行政与耗材,1756.21,,96.74%,1.12%
+2025/10/31,"一部分G&A(e.g.,lark) / R&D(AWS&开发工具）",软件与订阅服务,软件与订阅,2058.92,,100.00%,1.27%
+2025/10/31,G&A,行政运营,银行手续费,3.51,,0.19%,1.12%
+2025/10/31,S&M (若对客) / G&A (若内部),差旅招待,业务招待费,2759.94,,38.86%,4.38%
+2025/10/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 交通,546.61,,7.70%,4.38%
+2025/10/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 机票,1456.48,,20.50%,4.38%
+2025/10/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 住宿,2013.44,,28.35%,4.38%
+2025/10/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 杂项,326.58,,4.60%,4.38%
+2025/10/31,Other Income / Expense,其他收入/抵减,银行利息收入,,4.19,,0.00%
+2025/11/30,表面R&D / 实际G&A,研发外包费 - 中国团队,中国团队运营总额,50000,,100.00%,71.61%
+2025/11/30,G&A,专业服务,财税审计费,600,,4.87%,17.64%
+2025/11/30,G&A,专业服务,法律服务费,9073.42,,73.66%,17.64%
+2025/11/30,G&A / S&M (若市场咨询),专业服务,顾问与咨询费,2645,,21.47%,17.64%
+2025/11/30,G&A,行政运营,通讯费,56.67,,68.68%,0.12%
+2025/11/30,"一部分G&A(e.g.,lark) / R&D(AWS&开发工具）",软件与订阅服务,软件与订阅,3645.99,,100.00%,5.22%
+2025/11/30,G&A,行政运营,银行手续费,25.84,,31.32%,0.12%
+2025/11/30,S&M (若对客) / G&A (若内部),差旅招待,业务招待费,39.33,,1.04%,5.41%
+2025/11/30,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 交通,242.49,,6.42%,5.41%
+2025/11/30,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 机票,1511,,40.02%,5.41%
+2025/11/30,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 住宿,1934.82,,51.24%,5.41%
+2025/11/30,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 杂项,48.23,,1.28%,5.41%
+2025/11/30,Other Income / Expense,其他收入/抵减,银行利息收入,,3.78,,0.00%
+2025/12/31,表面R&D / 实际G&A,研发外包费 - 中国团队,中国团队运营总额,200000,,100.00%,83.91%
+2025/12/31,G&A,专业服务,法律服务费,16039,,100.00%,6.73%
+2025/12/31,G&A,行政运营,通讯费,56.67,,1.00%,2.38%
+2025/12/31,G&A,行政运营,办公行政与耗材,5241.51,,92.38%,2.38%
+2025/12/31,"一部分G&A(e.g.,lark) / R&D(AWS&开发工具）",软件与订阅服务,软件与订阅,3739.57,,100.00%,1.57%
+2025/12/31,G&A,行政运营,银行手续费,290.45,,5.12%,2.38%
+2025/12/31,S&M (若对客) / G&A (若内部),差旅招待,业务招待费,2735.68,,21.35%,5.37%
+2025/12/31,G&A,人力成本,员工培训费,100,,100.00%,0.04%
+2025/12/31,G&A,行政运营,规费与执照,35,,0.62%,2.38%
+2025/12/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 交通,1547.75,,12.08%,5.37%
+2025/12/31,G&A,行政运营,保险费用,50.16,,0.88%,2.38%
+2025/12/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 机票,2743.23,,21.41%,5.37%
+2025/12/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 住宿,1740.99,,13.59%,5.37%
+2025/12/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 杂项,4043.18,,31.56%,5.37%
+2025/12/31,Other Income / Expense,其他收入/抵减,银行利息收入,,6652.84,,0.00%
+2026/01/31,表面R&D / 实际G&A,研发外包费 - 中国团队,中国团队运营总额,200000,,90.41%
+2026/01/31,G&A,专业服务,法律服务费,5510,,100.00%,2.49%
+2026/01/31,G&A,行政运营,通讯费,56.64,,0.79%,3.24%
+2026/01/31,G&A,行政运营,办公行政与耗材,7118.83,,99.21%,3.24%
+2026/01/31,"一部分G&A(e.g.,lark) / R&D(AWS&开发工具）",软件与订阅服务,软件与订阅,914.16,,100.00%,0.41%
+2026/01/31,G&A,行政运营,银行手续费,0.31,,0.00%,3.24%
+2026/01/31,S&M (若对客) / G&A (若内部),差旅招待,业务招待费,2079.59,,27.39%,3.43%
+2026/01/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 交通,407.01,,5.36%,3.43%
+2026/01/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 机票,679.27,,8.95%,3.43%
+2026/01/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 住宿,2204.4,,29.03%,3.43%
+2026/01/31,S&M (若对客) / G&A (若内部),差旅招待,差旅 - 杂项,2223.22,,29.28%,3.43%
+2026/01/31,其他,其他,"待分类开支
+Uncategorized Expense",25,,100.00%,0.01%
+2026/01/31,Other Income / Expense,其他收入/抵减,银行利息收入,,4.05,,0.00%`;
+
+    const builtinCashflowCsv = `月份,类型,项目,现金流
+2025/07/31,经营性现金流,净经营收入/支出,-10717.67
+2025/07/31,经营性现金流,待收回款项（垫付/应收） 这部分other receivable是什么，股本？,-823.53
+2025/07/31,经营性现金流,信用卡款项净变动 - Joy,-5815.12
+2025/07/31,融资性现金流,股东初始出资,823.53
+2025/07/31,融资性现金流,云启资本SAFE融资到账,1.5e+06
+2025/08/31,经营性现金流,净经营收入/支出,-128875.36
+2025/08/31,经营性现金流,信用卡款项净变动 - Joy,7439.28
+2025/09/30,经营性现金流,净经营收入/支出,-47785.88
+2025/09/30,经营性现金流,信用卡款项净变动 - Joy,-5218.84
+2025/10/31,经营性现金流,净经营收入/支出,-162340.2
+2025/10/31,经营性现金流,信用卡款项净变动 - Joy,-873.48
+2025/10/31,经营性现金流,信用卡款项净变动 - JC,769.33
+2025/11/30,经营性现金流,净经营收入/支出,-69819.01
+2025/11/30,经营性现金流,信用卡款项净变动 - Joy,434.91
+2025/11/30,经营性现金流,信用卡款项净变动 - JC,332.75
+2025/11/30,融资性现金流,Zhi Zhai SAFE融资到账,200000
+2025/11/30,融资性现金流,XVC SAFE融资到账,3e+06
+2025/11/30,融资性现金流,Panga SAFE融资到账,1e+06
+2025/12/31,经营性现金流,净经营收入/支出,-231710.35
+2025/12/31,经营性现金流,信用卡款项净变动 - Joy,6063.66
+2025/12/31,经营性现金流,信用卡款项净变动 - JC,2632.16
+2025/12/31,经营性现金流,借款款项净变动,-150
+2025/12/31,投资性现金流,固定资产购置 - 车辆,-26500
+2026/01/31,经营性现金流,净经营收入/支出,-221214.38
+2026/01/31,经营性现金流,信用卡款项净变动 - Joy,-11004.61
+2026/01/31,经营性现金流,信用卡款项净变动 - JC,753.85`;
+
+    const builtinBalanceCsv = `月份,账户,余额,占比
+2025/07/31,Chase Checking - 9290,490075.99,32.89%
+2025/07/31,Chase Saving - 2886,500050,33.56%
+2025/07/31,CD - 2813,500000,33.55%
+2025/08/31,Chase Checking - 9290,361953.91,26.57%
+2025/08/31,Chase Saving - 2886,500055.14,36.71%
+2025/08/31,CD - 2813,500000,36.71%
+2025/08/31,Petty Cash,172.08,0.01%
+2025/09/30,Chase Checking - 9290,308944.87,23.60%
+2025/09/30,Chase Saving - 2886,500059.46,38.20%
+2025/09/30,CD - 2813,500000,38.19%
+2025/09/30,Petty Cash,172.08,0.01%
+2025/10/31,Chase Checking - 9290,146496.33,12.78%
+2025/10/31,Chase Saving - 2886,500063.65,43.61%
+2025/10/31,CD - 2813,500000,43.60%
+2025/10/31,Petty Cash,172.08,0.02%
+2025/11/30,Chase Checking - 9290,4.2774412e+06,81.05%
+2025/11/30,Chase Saving - 2886,500067.43,9.48%
+2025/11/30,CD - 2813,500000,9.47%
+2025/11/30,Petty Cash,172.08,0.00%
+2025/12/31,Chase Checking - 9290,1.02133194e+06,20.31%
+2025/12/31,Chase Saving - 2886,500035.85,9.94%
+2025/12/31,CD - 2813,506648.39,10.08%
+2025/12/31,CD - 6701,3e+06,59.67%
+2026/01/31,Chase Checking - 9290,788862.75,16.45%
+2026/01/31,Chase Saving - 2886,500039.9,10.42%
+2026/01/31,CD - 2813,506648.39,10.56%
+2026/01/31,CD - 6701,3e+06,62.54%
+2026/01/31,Petty Cash,1000,0.02%`;
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let field = "";
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === "," && !inQuotes) {
+          row.push(field);
+          field = "";
+        } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+          if (ch === "\r" && next === "\n") i++;
+          row.push(field);
+          const hasData = row.some(v => String(v).trim() !== "");
+          if (hasData) rows.push(row);
+          row = [];
+          field = "";
+        } else {
+          field += ch;
+        }
+      }
+      if (field.length || row.length) {
+        row.push(field);
+        const hasData = row.some(v => String(v).trim() !== "");
+        if (hasData) rows.push(row);
+      }
+      const headers = rows[0] || [];
+      return rows.slice(1).map(r => {
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h.trim()] = (r[idx] ?? "").trim();
+        });
+        return obj;
+      });
+    }
+
+    function num(v) {
+      if (v == null || v === "") return 0;
+      const n = Number(String(v).replace(/,/g, "").trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+    function monthKey(v) {
+      if (!v) return "";
+      return v.slice(0, 7).replace(/\//g, "-");
+    }
+    function usd(v) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v || 0);
+    }
+    function usd2(v) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(v || 0);
+    }
+    function runwayClass(m) {
+      if (!Number.isFinite(m) || m > 24) return "good";
+      if (m >= 12) return "warn";
+      return "bad";
+    }
+
+    let charts = {};
+    let state = null;
+
+    function buildMetrics(incomeRows, cashflowRows, balanceRows) {
+      const months = new Set();
+      const data = {};
+
+      function ensure(m) {
+        if (!data[m]) {
+          data[m] = {
+            month: m,
+            revenue: 0,
+            expense: 0,
+            opCash: 0,
+            invCash: 0,
+            finCash: 0,
+            netCash: 0,
+            cashBalance: 0,
+            accounts: {}
+          };
+        }
+        months.add(m);
+        return data[m];
+      }
+
+      incomeRows.forEach(r => {
+        const m = monthKey(r["月份"]);
+        if (!m) return;
+        const d = ensure(m);
+        d.expense += num(r["支出"]);
+        d.revenue += num(r["收入"]);
+      });
+
+      cashflowRows.forEach(r => {
+        const m = monthKey(r["月份"]);
+        if (!m) return;
+        const d = ensure(m);
+        const v = num(r["现金流"]);
+        const t = r["类型"] || "";
+        if (t.includes("经营")) d.opCash += v;
+        else if (t.includes("投资")) d.invCash += v;
+        else if (t.includes("融资")) d.finCash += v;
+        d.netCash += v;
+      });
+
+      balanceRows.forEach(r => {
+        const m = monthKey(r["月份"]);
+        if (!m) return;
+        const d = ensure(m);
+        const b = num(r["余额"]);
+        d.cashBalance += b;
+        d.accounts[r["账户"] || "未命名账户"] = b;
+      });
+
+      const sortedMonths = Array.from(months).sort();
+      sortedMonths.forEach((m, idx) => {
+        const d = data[m];
+        d.burn = Math.max(0, -d.opCash);
+        const recent = sortedMonths.slice(Math.max(0, idx - 2), idx + 1).map(mm => data[mm].burn);
+        const avgBurn3m = recent.reduce((a, b) => a + b, 0) / Math.max(recent.length, 1);
+        d.avgBurn3m = avgBurn3m;
+        d.runway = avgBurn3m > 0 ? d.cashBalance / avgBurn3m : Infinity;
+      });
+
+      return { months: sortedMonths, data };
+    }
+
+    function renderAll() {
+      const monthSelect = document.getElementById("monthSelect");
+      const selected = monthSelect.value || state.months[state.months.length - 1];
+      const d = state.data[selected];
+
+      const prevMonth = state.months[state.months.indexOf(selected) - 1];
+      const prev = prevMonth ? state.data[prevMonth] : null;
+      const cashDelta = prev ? d.cashBalance - prev.cashBalance : 0;
+
+      document.getElementById("kpiCash").textContent = usd(d.cashBalance);
+      document.getElementById("kpiCashSub").textContent = prev ? `较上月 ${cashDelta >= 0 ? "+" : ""}${usd(cashDelta)}` : "首月无环比";
+      document.getElementById("kpiCashSub").className = "kpi-sub " + (cashDelta >= 0 ? "good" : "bad");
+
+      document.getElementById("kpiBurn").textContent = usd(d.burn);
+      const margin = d.revenue - d.expense;
+      document.getElementById("kpiBurnSub").textContent = `当月收支差额 ${margin >= 0 ? "+" : ""}${usd(margin)}`;
+      document.getElementById("kpiBurnSub").className = "kpi-sub " + (margin >= 0 ? "good" : "bad");
+
+      const runwayText = Number.isFinite(d.runway) ? `${d.runway.toFixed(1)} 月` : "∞";
+      document.getElementById("kpiRunway").textContent = runwayText;
+      document.getElementById("kpiRunway").className = "kpi-value " + runwayClass(d.runway);
+      document.getElementById("kpiRunwaySub").textContent = `近3月平均 burn: ${usd(d.avgBurn3m)}/月`;
+
+      document.getElementById("kpiNetCash").textContent = usd(d.netCash);
+      document.getElementById("kpiNetCash").className = "kpi-value " + (d.netCash >= 0 ? "good" : "bad");
+      document.getElementById("kpiNetCashSub").textContent = `经营 ${usd2(d.opCash)} / 投资 ${usd2(d.invCash)} / 融资 ${usd2(d.finCash)}`;
+
+      const months = state.months;
+      const balances = months.map(m => state.data[m].cashBalance);
+      const burns = months.map(m => state.data[m].burn);
+      const revenues = months.map(m => state.data[m].revenue);
+      const op = months.map(m => state.data[m].opCash);
+      const inv = months.map(m => state.data[m].invCash);
+      const fin = months.map(m => state.data[m].finCash);
+
+      drawLine("cashTrendChart", "月末现金余额", months, balances, "#2563eb", true);
+      drawBarLine("burnRevenueChart", months, burns, revenues);
+      drawStack("cashflowTypeChart", months, op, inv, fin);
+      drawDoughnut("accountMixChart", d.accounts);
+      renderTable();
+    }
+
+    function drawLine(id, label, labels, values, color, fill) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
+        type: "line",
+        data: { labels, datasets: [{ label, data: values, borderColor: color, backgroundColor: "rgba(37,99,235,0.12)", fill, tension: 0.25 }] },
+        options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { ticks: { callback: v => usd(v) } } } }
+      });
+    }
+
+    function drawBarLine(id, labels, burns, revenues) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
+        data: {
+          labels,
+          datasets: [
+            { type: "bar", label: "Burn Rate", data: burns, backgroundColor: "rgba(220,38,38,0.7)" },
+            { type: "line", label: "收入", data: revenues, borderColor: "#059669", backgroundColor: "#059669", tension: 0.2 }
+          ]
+        },
+        options: { responsive: true, scales: { y: { ticks: { callback: v => usd(v) } } } }
+      });
+    }
+
+    function drawStack(id, labels, op, inv, fin) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            { label: "经营性", data: op, backgroundColor: "rgba(59,130,246,0.8)" },
+            { label: "投资性", data: inv, backgroundColor: "rgba(234,179,8,0.8)" },
+            { label: "融资性", data: fin, backgroundColor: "rgba(16,185,129,0.8)" }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true, ticks: { callback: v => usd(v) } }
+          }
+        }
+      });
+    }
+
+    function drawDoughnut(id, accountMap) {
+      if (charts[id]) charts[id].destroy();
+      const entries = Object.entries(accountMap || {}).sort((a, b) => b[1] - a[1]);
+      const labels = entries.map(e => e[0]);
+      const data = entries.map(e => e[1]);
+      charts[id] = new Chart(document.getElementById(id), {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{ data, backgroundColor: ["#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2"] }]
+        },
+        options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.querySelector("#monthlyTable tbody");
+      tbody.innerHTML = "";
+      state.months.forEach(m => {
+        const d = state.data[m];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${m}</td>
+          <td>${usd2(d.cashBalance)}</td>
+          <td>${usd2(d.revenue)}</td>
+          <td>${usd2(d.expense)}</td>
+          <td>${usd2(d.opCash)}</td>
+          <td>${usd2(d.burn)}</td>
+          <td>${usd2(d.netCash)}</td>
+          <td>${Number.isFinite(d.runway) ? d.runway.toFixed(1) : "∞"}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function readFileText(inputEl) {
+      const file = inputEl.files && inputEl.files[0];
+      if (!file) return null;
+      return file.text();
+    }
+
+    async function loadAndRender(useUpload) {
+      let incomeCsv = builtinIncomeCsv;
+      let cashflowCsv = builtinCashflowCsv;
+      let balanceCsv = builtinBalanceCsv;
+
+      if (useUpload) {
+        const i = await readFileText(document.getElementById("incomeFile"));
+        const c = await readFileText(document.getElementById("cashflowFile"));
+        const b = await readFileText(document.getElementById("balanceFile"));
+        if (i) incomeCsv = i;
+        if (c) cashflowCsv = c;
+        if (b) balanceCsv = b;
+      }
+
+      const incomeRows = parseCsv(incomeCsv);
+      const cashflowRows = parseCsv(cashflowCsv);
+      const balanceRows = parseCsv(balanceCsv);
+      state = buildMetrics(incomeRows, cashflowRows, balanceRows);
+
+      const monthSelect = document.getElementById("monthSelect");
+      const oldValue = monthSelect.value;
+      monthSelect.innerHTML = "";
+      state.months.forEach(m => {
+        const op = document.createElement("option");
+        op.value = m;
+        op.textContent = m;
+        monthSelect.appendChild(op);
+      });
+      monthSelect.value = state.months.includes(oldValue) ? oldValue : state.months[state.months.length - 1];
+      renderAll();
+    }
+
+    document.getElementById("monthSelect").addEventListener("change", renderAll);
+    document.getElementById("reloadBtn").addEventListener("click", () => loadAndRender(true));
+
+    loadAndRender(false);
+  </script>
+</body>
+</html>
